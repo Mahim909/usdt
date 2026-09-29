@@ -130,12 +130,7 @@ nav button.on{color:var(--blue);background:var(--tint)}
     </div>
     <div class="taskcard" id="taskcard">
       <h3>Sponsored task</h3>
-      <adsgram-task id="task" data-block-id="task-50835" data-debug="false" data-debug-console="false" class="task">
-        <span slot="reward" class="tk-reward">+$0.001</span>
-        <button slot="button" class="tk-btn">Start</button>
-        <button slot="claim" class="tk-btn claim">Claim</button>
-        <span slot="done" class="tk-done">Done</span>
-      </adsgram-task>
+      <div id="taskslot"></div>
     </div>
   </section>
 
@@ -222,6 +217,7 @@ const CONFIG = {
   MONETAG_FN: 'show_11919279', // name of the function your Monetag SDK creates
   ADSGRAM_BLOCK_ID: 'YOUR_BLOCK_ID',
   DB_URL: 'https://free-fire-panel-a9787-default-rtdb.firebaseio.com', // Firebase Realtime Database (withdraw requests)
+  TASK_ENABLED: false,    // set true AFTER the block is Active on partner.adsgram.ai
   TASK_BLOCK_ID: 'task-50835', // AdsGram Task block
   TASK_RATE_MILLS: 1,     // reward for completing a Task ad ($0.001)
   POPUP_RATE_MILLS: 1,    // reward for Popup ad button ($0.001)
@@ -343,15 +339,21 @@ try {
 
 /* ============ ADSGRAM TASK (in-feed style card) ============ */
 (function(){
-  const t = $('task'), card = $('taskcard');
-  if (!t) return;
-  t.setAttribute('data-block-id', CONFIG.TASK_BLOCK_ID);
+  const card = $('taskcard'), slot = $('taskslot');
+  if (!CONFIG.TASK_ENABLED) { card.remove(); return; }   // element is only created when enabled
+  slot.innerHTML =
+    '<adsgram-task id="task" data-block-id="' + CONFIG.TASK_BLOCK_ID + '" data-debug="false" data-debug-console="false" class="task">' +
+    '<span slot="reward" class="tk-reward">+' + usd(CONFIG.TASK_RATE_MILLS) + '</span>' +
+    '<button slot="button" class="tk-btn">Start</button>' +
+    '<button slot="claim" class="tk-btn claim">Claim</button>' +
+    '<span slot="done" class="tk-done">Done</span></adsgram-task>';
+  const t = $('task');
   t.addEventListener('reward', () => {
     S.mills += CONFIG.TASK_RATE_MILLS;
     S.hist.unshift({ t:'Task reward', d:new Date().toLocaleString(), a:'+' + usd(CONFIG.TASK_RATE_MILLS) });
     save(); render(); toast('+' + usd(CONFIG.TASK_RATE_MILLS) + ' task reward');
   });
-  const hide = () => { card.style.display = 'none'; };   // no task available -> hide the card
+  const hide = () => { card.style.display = 'none'; };
   t.addEventListener('onBannerNotFound', hide);
   t.addEventListener('onError', hide);
   t.addEventListener('onTooLongSession', () => toast('Restart the app to load new tasks'));
