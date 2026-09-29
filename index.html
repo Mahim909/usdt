@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- AdsGram SDK (Task ad) -->
-<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <!-- Monetag SDK -->
 <script src='//libtl.com/sdk.js' data-zone='11919279' data-sdk='show_11919279'></script>
 <style>
@@ -75,21 +73,6 @@ select:focus,input:focus{border-color:var(--blue);outline:none}
 .support .ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .support small{display:block;color:var(--muted);font-weight:600;font-size:12px}
 .support b{font-size:14px;word-break:break-all}
-adsgram-task{display:block;--adsgram-task-font-size:15px;--adsgram-task-icon-size:44px;--adsgram-task-icon-title-gap:12px;--adsgram-task-icon-border-radius:12px;--adsgram-task-button-width:92px}
-.tk-reward{font-weight:800;color:var(--blue);font-size:13px}
-.tk-btn{display:inline-block;width:100%;text-align:center;background:var(--blue);color:#fff;font-weight:800;font-size:14px;padding:10px 0;border-radius:12px;cursor:pointer;border:0;font-family:inherit}
-.tk-btn.claim{background:var(--amber);color:#1f1300}
-.tk-done{display:inline-block;width:100%;text-align:center;font-weight:800;font-size:14px;color:#166534;background:#dcfce7;padding:10px 0;border-radius:12px}
-.taskcard{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:14px 16px 16px;margin-bottom:14px}
-.taskcard h3{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px}
-.tasks{list-style:none}
-.tasks>li{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
-.tasks>li:first-child{border-top:0;padding-top:2px}
-.tasks>li.sp{display:block}
-.ti{width:44px;height:44px;border-radius:12px;background:var(--tint);color:var(--blue);display:grid;place-items:center;font-weight:800;flex:none}
-.tt{flex:1;min-width:0}.tt b{display:block;font-size:15px}.tt small{color:var(--muted);font-weight:600;font-size:13px}
-.tk-btn.sm{width:92px;flex:none}
-.tk-btn:disabled{opacity:.45;cursor:not-allowed}
 .empty{color:var(--muted);font-size:14px;padding:6px 0}
 
 .steps{list-style:none;counter-reset:s}
@@ -129,19 +112,12 @@ nav button.on{color:var(--blue);background:var(--tint)}
       </div>
       <p class="next">Watch <strong id="left">100</strong> more ads to add <strong>$0.10</strong></p>
       <button class="btn" id="watch">Watch ad · earn $0.001</button>
+      <button class="btn alt" id="watch2" style="margin-top:10px">Popup ad · earn $0.001</button>
       <p class="sub" id="cool" style="margin-top:10px;min-height:20px"></p>
     </div>
     <div class="row">
       <div class="stat"><small>Balance</small><b id="bal1">$0.000</b></div>
       <div class="stat"><small>Ads today</small><b id="today">0</b></div>
-    </div>
-    <div class="taskcard" id="taskcard">
-      <h3>Tasks</h3>
-      <ul class="tasks">
-        <li><span class="ti">▶</span><div class="tt"><b>Watch a video ad</b><small>Reward +$0.001</small></div><button class="tk-btn sm" id="watch3">Go</button></li>
-        <li><span class="ti">↗</span><div class="tt"><b>Watch a popup ad</b><small>Reward +$0.001</small></div><button class="tk-btn sm" id="watch2">Go</button></li>
-        <li class="sp" id="taskrow"><div id="taskslot"></div></li>
-      </ul>
     </div>
   </section>
 
@@ -228,10 +204,6 @@ const CONFIG = {
   MONETAG_FN: 'show_11919279', // name of the function your Monetag SDK creates
   ADSGRAM_BLOCK_ID: 'YOUR_BLOCK_ID',
   DB_URL: 'https://free-fire-panel-a9787-default-rtdb.firebaseio.com', // Firebase Realtime Database (withdraw requests)
-  TASK_DEBUG: false,      // true = AdsGram shows a TEST task (use to preview the card)
-  TASK_ENABLED: true,     // AdsGram Task card (needs block Active on partner.adsgram.ai)
-  TASK_BLOCK_ID: 'task-50835', // AdsGram Task block
-  TASK_RATE_MILLS: 1,     // reward for completing a Task ad ($0.001)
   POPUP_RATE_MILLS: 1,    // reward for Popup ad button ($0.001)
   INAPP: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false } // auto ads, no reward
 };
@@ -315,11 +287,11 @@ async function showAd(kind) {
 let busy = false, cdTimer;
 function cooldown() {
   clearInterval(cdTimer);
-  const b = $('watch'), b2 = $('watch2'), b3 = $('watch3'), c = $('cool');
+  const b = $('watch'), b2 = $('watch2'), c = $('cool');
   const tick = () => {
     const left = Math.ceil(CONFIG.COOLDOWN_SEC - (Date.now() - S.last) / 1000);
-    if (left > 0) { b.disabled = b2.disabled = b3.disabled = true; c.textContent = 'Next ad in ' + left + 's'; }
-    else { b.disabled = b2.disabled = b3.disabled = false; c.textContent = ''; clearInterval(cdTimer); }
+    if (left > 0) { b.disabled = b2.disabled = true; c.textContent = 'Next ad in ' + left + 's'; }
+    else { b.disabled = b2.disabled = false; c.textContent = ''; clearInterval(cdTimer); }
   };
   tick(); cdTimer = setInterval(tick, 500);
 }
@@ -328,7 +300,7 @@ async function earn(kind) {
   if (busy) return;
   if (S.dayAds >= CONFIG.DAILY_LIMIT) return toast('Daily limit reached. Come back tomorrow.');
   const rate = kind === 'pop' ? CONFIG.POPUP_RATE_MILLS : CONFIG.RATE_MILLS;
-  busy = true; $('watch').disabled = $('watch2').disabled = $('watch3').disabled = true;
+  busy = true; $('watch').disabled = $('watch2').disabled = true;
   try {
     await showAd(kind);
     S.mills += rate; S.total++; S.dayAds++; S.last = Date.now();
@@ -341,7 +313,6 @@ async function earn(kind) {
 }
 $('watch').addEventListener('click', () => earn('rewarded'));
 $('watch2').addEventListener('click', () => earn('pop'));
-$('watch3').addEventListener('click', () => earn('rewarded'));
 
 /* In-app interstitial: automatic ads (no reward), started once on load */
 try {
@@ -349,28 +320,6 @@ try {
     window[CONFIG.MONETAG_FN]({ type: 'inApp', inAppSettings: CONFIG.INAPP });
   }
 } catch(e){}
-
-/* ============ ADSGRAM TASK (a row inside the Tasks list) ============ */
-(function(){
-  const row = $('taskrow'), slot = $('taskslot');
-  if (!CONFIG.TASK_ENABLED) { row.remove(); return; }   // element is only created when enabled
-  slot.innerHTML =
-    '<adsgram-task id="task" data-block-id="' + CONFIG.TASK_BLOCK_ID + '" data-debug="' + CONFIG.TASK_DEBUG + '" data-debug-console="false" class="task">' +
-    '<span slot="reward" class="tk-reward">+' + usd(CONFIG.TASK_RATE_MILLS) + '</span>' +
-    '<button slot="button" class="tk-btn">Start</button>' +
-    '<button slot="claim" class="tk-btn claim">Claim</button>' +
-    '<span slot="done" class="tk-done">Done</span></adsgram-task>';
-  const t = $('task');
-  t.addEventListener('reward', () => {
-    S.mills += CONFIG.TASK_RATE_MILLS;
-    S.hist.unshift({ t:'Task reward', d:new Date().toLocaleString(), a:'+' + usd(CONFIG.TASK_RATE_MILLS) });
-    save(); render(); toast('+' + usd(CONFIG.TASK_RATE_MILLS) + ' task reward');
-  });
-  const hide = () => { row.style.display = 'none'; };   // no task available -> only this row hides
-  t.addEventListener('onBannerNotFound', hide);
-  t.addEventListener('onError', hide);
-  t.addEventListener('onTooLongSession', () => toast('Restart the app to load new tasks'));
-})();
 
 /* ============ WITHDRAW (saved to Firebase as "pending") ============ */
 $('wd').addEventListener('click', async () => {
